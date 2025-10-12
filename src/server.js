@@ -12,6 +12,8 @@ import notesRoutes from './routes/notesRoutes.js';
 const app = express();
 const PORT = process.env.PORT ?? 3030;
 
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
+
 app.use(logger);
 app.use(express.json());
 app.use(helmet());

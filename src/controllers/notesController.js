@@ -1,33 +1,42 @@
 import createHttpError from 'http-errors';
 import { Note } from '../models/note.js';
 
-const buildNoteSearchFilter = ({ tag, search }) => {
-  const filter = {};
-  if (tag) filter.tag = tag;
-
-  if (search && search.trim()) {
-    const safeInput = search.trim().slice(0, 100);
-    const escaped = safeInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escaped, 'i');
-    filter.$or = [{ title: regex }, { content: regex }];
-  }
-  return filter;
-};
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const getAllNotes = async (req, res, next) => {
   try {
-    const { page = 1, perPage = 10 } = req.query;
+    const {
+      page = 1,
+      perPage = 10,
+      tag,
+      search,
+      searchMode = 'text',
+    } = req.query;
     const skip = (page - 1) * perPage;
-    const filter = buildNoteSearchFilter(req.query);
+
+    const filter = {};
+    if (tag) filter.tag = tag;
+
+    let projection;
+    let sort = { createdAt: -1 };
+    const hasSearch = Boolean(search);
+
+    if (hasSearch) {
+      if (searchMode === 'contains') {
+        const regex = new RegExp(escapeRegex(search), 'i');
+        filter.$or = [{ title: regex }, { content: regex }];
+      } else {
+        filter.$text = { $search: search };
+        projection = { score: { $meta: 'textScore' } };
+        sort = { score: { $meta: 'textScore' }, createdAt: -1 };
+      }
+    }
 
     const [totalNotes, notes] = await Promise.all([
       Note.countDocuments(filter),
-      Note.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(perPage)
-        .lean(),
+      Note.find(filter, projection).sort(sort).skip(skip).limit(perPage).lean(),
     ]);
+
     const totalPages = Math.ceil(totalNotes / perPage);
 
     res.status(200).json({
@@ -36,6 +45,7 @@ export const getAllNotes = async (req, res, next) => {
       totalNotes,
       totalPages,
       notes,
+      searchMode: hasSearch ? searchMode : 'none',
     });
   } catch (err) {
     next(err);

@@ -8,10 +8,7 @@ export const searchRateLimiter = rateLimit({
   message: {
     error: 'Too many search requests. Please slow down.',
   },
-  // keyGenerator: (req) => {
-  //   // userId ...
-  //   return req.ip;
-  // },
+  // keyGenerator: (req) => req.user?.id || req.ip,
   skip: (req) => {
     const { search, tag } = req.query;
     return !search && !tag;
