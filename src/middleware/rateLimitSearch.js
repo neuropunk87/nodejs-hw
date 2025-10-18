@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 export const searchRateLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -8,7 +8,7 @@ export const searchRateLimiter = rateLimit({
   message: {
     error: 'Too many search requests. Please slow down.',
   },
-  // keyGenerator: (req) => req.user?.id || req.ip,
+  keyGenerator: (req) => req.user?._id?.toString() ?? ipKeyGenerator(req),
   skip: (req) => {
     const { search, tag } = req.query;
     return !search && !tag;
