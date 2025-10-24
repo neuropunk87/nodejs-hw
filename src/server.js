@@ -10,6 +10,7 @@ import { logger } from './middleware/logger.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import notesRoutes from './routes/notesRoutes.js';
 
 const app = express();
@@ -50,7 +51,7 @@ if (isProd) {
 app.use(cookieParser());
 
 app.use((req, res, next) => {
-  if (['POST', 'PATCH'].includes(req.method)) {
+  if (['POST'].includes(req.method)) {
     const hasBody = req.body && Object.keys(req.body).length > 0;
     if (!hasBody) return next(createHttpError(400, 'Body is missing'));
   }
@@ -58,6 +59,7 @@ app.use((req, res, next) => {
 });
 
 app.use(authRoutes);
+app.use(userRoutes);
 app.use(notesRoutes);
 
 app.use(notFoundHandler);
